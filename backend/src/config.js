@@ -4,7 +4,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'STRIPE_SECRET_KEY'];
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'STRIPE_SECRET_KEY'];
 const missing = requiredEnv.filter((key) => !process.env[key]);
 
 if (missing.length) {
@@ -14,8 +14,8 @@ if (missing.length) {
 export const config = {
   port: process.env.PORT || 4000,
   supabaseUrl: process.env.SUPABASE_URL,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
+  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripePriceDefault: Number(process.env.STRIPE_PRICE_DEFAULT || 1200),
   stripeCurrency: process.env.STRIPE_CURRENCY || 'usd',
