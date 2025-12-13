@@ -21,7 +21,7 @@ jobs:
       GAR_REGION: ${{ vars.GAR_REGION || secrets.GAR_REGION }}
       GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || secrets.GAR_REPOSITORY }}
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
-      BUILD_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      BUILD_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
       TAG: ${{ github.sha }}
     steps:
       - name: Checkout
@@ -52,8 +52,13 @@ jobs:
 
       - name: Run Cloud Build
         run: |
+          SA_FLAG=""
+          if [ -n "${BUILD_SERVICE_ACCOUNT}" ]; then
+            SA_RESOURCE="projects/${PROJECT_ID}/serviceAccounts/${BUILD_SERVICE_ACCOUNT}"
+            SA_FLAG="--service-account=${SA_RESOURCE}"
+          fi
           gcloud builds submit . \
             --project="${PROJECT_ID}" \
             --config=cloudbuild.yaml \
-            --service-account="${BUILD_SERVICE_ACCOUNT}" \
+            ${SA_FLAG} \
             --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL},_TAG=${TAG}
