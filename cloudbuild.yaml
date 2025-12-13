@@ -4,7 +4,7 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${_TAG}
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:latest
       - backend
@@ -14,7 +14,7 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:${_TAG}
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:latest
       - --build-arg
@@ -22,15 +22,16 @@ steps:
       - frontend
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${_TAG}
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:latest
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:${_TAG}
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:latest
 
 substitutions:
   _REGION: us-central1
   _REPOSITORY: cinemaclub
   _VITE_API_BASE_URL: http://backend:4000/api
+  _TAG: dev
 
 options:
   logging: CLOUD_LOGGING_ONLY
