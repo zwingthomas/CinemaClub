@@ -21,5 +21,9 @@ export const config = {
   stripeCurrency: process.env.STRIPE_CURRENCY || 'usd',
   muxTokenId: process.env.MUX_TOKEN_ID,
   muxTokenSecret: process.env.MUX_TOKEN_SECRET,
-  frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+  // Support a comma-separated list so staging/prod/frontends can all be allowed.
+  frontendOrigins: (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map((val) => val.trim().replace(/\/+$/, ''))
+    .filter(Boolean),
 };

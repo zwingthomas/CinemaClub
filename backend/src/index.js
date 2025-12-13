@@ -8,7 +8,19 @@ import { config } from './config.js';
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: config.frontendOrigin, credentials: true }));
+// Handle multiple allowed origins and skip checks for non-browser clients (no Origin header).
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+    const allowed = config.frontendOrigins.some((o) => o === normalizedOrigin);
+    if (!allowed) {
+      console.warn(`CORS blocked origin: ${origin}`);
+    }
+    return allowed ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+  },
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 
