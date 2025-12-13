@@ -1,5 +1,5 @@
 import express from 'express';
-import { listMovies, getMovieBySlug, getMovieById, hasPurchased, getPlaybackForMovie, recordPurchase, confirmPurchase, getUnconfirmedPurchase } from '../clients/supabase.js';
+import { listMovies, getMovieBySlug, getMovieById, hasPurchased, getPlaybackForMovie, recordPurchase, confirmPurchase, getUnconfirmedPurchase, startWatchSession } from '../clients/supabase.js';
 import { stripe } from '../clients/stripe.js';
 import { config } from '../config.js';
 
@@ -66,12 +66,14 @@ router.post('/:movieId/checkout', async (req, res) => {
     });
 
     // Record purchase immediately with confirmed=false
+    // Default rental length is 1 week (604800 seconds)
     await recordPurchase({
       movieId: movie.id,
       email,
       stripeSessionId: session.id,
       amount,
       currency,
+      rentalLength: movie.rental_length || 604800,
       confirmed: false,
     });
 
@@ -88,23 +90,25 @@ router.get('/:movieId/watch', async (req, res) => {
 
   try {
     let allowed = false;
+    let verifiedEmail = email;
 
     // If session_id provided, verify with Stripe and confirm the purchase
     if (session_id && stripe) {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       if (session.payment_status === 'paid' && session.metadata?.movieId === movieId) {
         await confirmPurchase(session.id);
+        verifiedEmail = session.metadata.email;
         allowed = true;
       }
     }
 
     // Fall back to checking existing confirmed purchase
-    if (!allowed && email) {
-      allowed = await hasPurchased({ movieId, email });
+    if (!allowed && verifiedEmail) {
+      allowed = await hasPurchased({ movieId, email: verifiedEmail });
 
       // If no confirmed purchase, check for unconfirmed and verify with Stripe
       if (!allowed && stripe) {
-        const unconfirmed = await getUnconfirmedPurchase({ movieId, email });
+        const unconfirmed = await getUnconfirmedPurchase({ movieId, email: verifiedEmail });
         if (unconfirmed) {
           const session = await stripe.checkout.sessions.retrieve(unconfirmed.stripe_session_id);
           if (session.payment_status === 'paid') {
@@ -122,10 +126,29 @@ router.get('/:movieId/watch', async (req, res) => {
     const playbackId = await getPlaybackForMovie(movieId);
     if (!playbackId) return res.status(404).json({ error: 'Playback not found' });
 
-    res.json({ playbackId, muxStreamUrl: `https://stream.mux.com/${playbackId}.m3u8` });
+    res.json({ playbackId, muxStreamUrl: `https://stream.mux.com/${playbackId}.m3u8`, email: verifiedEmail });
   } catch (error) {
     console.error('Error getting watch data', error);
     res.status(500).json({ error: 'Unable to load playback' });
+  }
+});
+
+// Start watch session - sets the 48-hour rental window
+router.post('/:movieId/start-watch', async (req, res) => {
+  const { movieId } = req.params;
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ error: 'Email required' });
+
+  try {
+    const result = await startWatchSession({ movieId, email });
+    if (!result) {
+      return res.status(402).json({ error: 'No confirmed purchase found' });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('Error starting watch session', error);
+    res.status(500).json({ error: 'Unable to start watch session' });
   }
 });
 

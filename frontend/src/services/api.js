@@ -34,3 +34,12 @@ export async function fetchWatchData(movieId, { email, sessionId } = {}) {
   const res = await fetch(url.toString());
   return handleResponse(res);
 }
+
+export async function startWatchSession(movieId, email) {
+  const res = await fetch(`${API_BASE}/movies/${movieId}/start-watch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(res);
+}

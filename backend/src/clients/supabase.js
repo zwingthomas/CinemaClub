@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
 
-if (!config.supabaseUrl || !config.supabaseSecretKey) {
+if (!config.supabaseUrl || !config.supabaseServiceKey) {
   console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
 }
 
-const supabase = createClient(config.supabaseUrl || '', config.supabaseSecretKey || '');
+const supabase = createClient(config.supabaseUrl || '', config.supabaseServiceKey || '');
 
 export async function listMovies() {
   const { data, error } = await supabase
@@ -39,7 +39,7 @@ export async function getMovieBySlug(slug) {
   return data;
 }
 
-export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency, rentalLength, watchExpiration, confirmed = false }) {
+export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency, rentalLength, watchDuration, confirmed = false }) {
   const { error } = await supabase.from('purchases').upsert(
     {
       movie_id: movieId,
@@ -48,7 +48,7 @@ export async function recordPurchase({ movieId, email, stripeSessionId, amount, 
       amount,
       currency,
       rental_length: rentalLength,
-      watch_experation: watchExpiration,
+      watch_experation: watchDuration || 172800, // 48 hours in seconds
       confirmed,
     },
     { onConflict: 'stripe_session_id' }
@@ -68,16 +68,32 @@ export async function confirmPurchase(stripeSessionId) {
 
 export async function hasPurchased({ movieId, email }) {
   if (!email) return false;
-  const { data, error } = await supabase
+  const { data: purchases, error } = await supabase
     .from('purchases')
-    .select('id')
+    .select('id, watch_experation, watch_started_at, rental_length, created_at')
     .eq('movie_id', movieId)
     .eq('email', email)
     .eq('confirmed', true)
-    .maybeSingle();
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return Boolean(data);
+  if (!purchases || purchases.length === 0) return false;
+
+  const now = new Date();
+
+  // Check if any purchase is still valid
+  return purchases.some((p) => {
+    if (p.watch_started_at) {
+      // Watch window started - check if it's still valid
+      const watchDuration = p.watch_experation || 172800; // 48 hours default
+      const watchExpires = new Date(new Date(p.watch_started_at).getTime() + watchDuration * 1000);
+      return watchExpires > now;
+    }
+    // Watch window hasn't started - check if rental window is still open
+    const rentalLengthSeconds = p.rental_length || 604800;
+    const rentalExpiration = new Date(new Date(p.created_at).getTime() + rentalLengthSeconds * 1000);
+    return rentalExpiration > now;
+  });
 }
 
 export async function getUnconfirmedPurchase({ movieId, email }) {
@@ -88,10 +104,11 @@ export async function getUnconfirmedPurchase({ movieId, email }) {
     .eq('movie_id', movieId)
     .eq('email', email)
     .eq('confirmed', false)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function getPlaybackForMovie(movieId) {
@@ -103,6 +120,58 @@ export async function getPlaybackForMovie(movieId) {
 
   if (error) throw error;
   return data?.mux_playback_id;
+}
+
+export async function startWatchSession({ movieId, email }) {
+  // Get all confirmed purchases for this movie/email, most recent first
+  const { data: purchases, error: fetchError } = await supabase
+    .from('purchases')
+    .select('id, watch_experation, watch_started_at, rental_length, created_at')
+    .eq('movie_id', movieId)
+    .eq('email', email)
+    .eq('confirmed', true)
+    .order('created_at', { ascending: false });
+
+  if (fetchError) throw fetchError;
+  if (!purchases || purchases.length === 0) return null;
+
+  const now = new Date();
+
+  // Find a valid purchase: either has active watch window, or rental window still open
+  const validPurchase = purchases.find((p) => {
+    if (p.watch_started_at) {
+      // Watch window started - check if it's still valid
+      const watchDuration = p.watch_experation || 172800; // 48 hours default
+      const watchExpires = new Date(new Date(p.watch_started_at).getTime() + watchDuration * 1000);
+      return watchExpires > now;
+    }
+    // Watch window hasn't started - check if rental window is still open
+    const rentalLengthSeconds = p.rental_length || 604800;
+    const rentalExpiration = new Date(new Date(p.created_at).getTime() + rentalLengthSeconds * 1000);
+    return rentalExpiration > now;
+  });
+
+  if (!validPurchase) return null;
+
+  // If watch window already started, return existing expiration
+  if (validPurchase.watch_started_at) {
+    const watchDuration = validPurchase.watch_experation || 172800;
+    const watchExpiration = new Date(new Date(validPurchase.watch_started_at).getTime() + watchDuration * 1000).toISOString();
+    return { watchExpiration };
+  }
+
+  // Start watch window now
+  const watchStartedAt = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from('purchases')
+    .update({ watch_started_at: watchStartedAt })
+    .eq('id', validPurchase.id);
+
+  if (updateError) throw updateError;
+
+  const watchDuration = validPurchase.watch_experation || 172800;
+  const watchExpiration = new Date(new Date(watchStartedAt).getTime() + watchDuration * 1000).toISOString();
+  return { watchExpiration };
 }
 
 export async function seedSampleMovies() {
