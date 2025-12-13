@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createCheckout, fetchMovie } from '../services/api.js';
-import { getStripe } from '../services/stripe.js';
-import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { createCheckoutSession, fetchMovie } from '../services/api.js';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+import { getStripe } from '../services/stripe.js';
 
 function MoviePage() {
   const { slug } = useParams();
@@ -16,6 +12,8 @@ function MoviePage() {
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [showCheckout, setShowCheckout] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchMovie(slug)
@@ -24,26 +22,28 @@ function MoviePage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const handleStartCheckout = () => {
+  const handleStartCheckout = async () => {
     if (!email) {
       setError('Add your email so we can confirm access.');
       return;
     }
     if (!movie) return;
+    setProcessing(true);
     try {
-      await getStripe();
+      const stripe = await getStripe();
+      setStripePromise(Promise.resolve(stripe));
+      setError('');
+      setShowCheckout(true);
     } catch (e) {
       setError('Payments are unavailable right now. Missing Stripe configuration.');
-      return;
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(true);
-    setError('');
-    setShowCheckout(true);
   };
 
   const fetchClientSecret = useCallback(() => {
     return createCheckoutSession(movie.id, email).then((res) => res.clientSecret);
-  }, [movie, email]);
+  }, [movie?.id, email]);
 
   if (loading) return <main className="page"><p className="muted">Loading film…</p></main>;
   if (error && !movie) return <main className="page"><p className="error">{error}</p></main>;
@@ -71,17 +71,19 @@ function MoviePage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <button className="button primary" onClick={handleStartCheckout}>
-                    Rent Now
+                  <button className="button primary" onClick={handleStartCheckout} disabled={processing}>
+                    {processing ? 'Preparing checkout…' : 'Rent Now'}
                   </button>
                 </div>
                 {error && <p className="error">{error}</p>}
                 <button className="button ghost" onClick={() => navigate(-1)}>Back to collection</button>
               </>
             ) : (
-              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ fetchClientSecret }}>
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
+              stripePromise && (
+                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ fetchClientSecret }}>
+                  <EmbeddedCheckout />
+                </EmbeddedCheckoutProvider>
+              )
             )}
           </div>
         </div>
