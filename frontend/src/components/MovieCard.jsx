@@ -6,13 +6,6 @@ function MovieCard({ movie }) {
       <div className="movie-thumb">
         <img src={movie.hero_image_url || movie.still_image_url} alt={movie.title} loading="lazy" />
         <div className="thumb-overlay" />
-        <div className="pill-row">
-          {(movie.tags || []).slice(0, 3).map((tag) => (
-            <span className="pill" key={tag}>
-              {tag}
-            </span>
-          ))}
-        </div>
       </div>
       <div className="movie-meta">
         <div>

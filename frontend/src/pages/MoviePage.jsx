@@ -50,11 +50,6 @@ function MoviePage() {
           <p className="eyebrow">{movie.release_year} · {movie.runtime_minutes}m</p>
           <h1>{movie.title}</h1>
           <p className="lede">{movie.synopsis}</p>
-          <div className="pill-row">
-            {(movie.tags || []).map((tag) => (
-              <span className="pill" key={tag}>{tag}</span>
-            ))}
-          </div>
           <div className="detail-grid">
             <div>
               <p className="meta-eyebrow">Director</p>
