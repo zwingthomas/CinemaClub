@@ -1,5 +1,5 @@
 import express from 'express';
-import { listMovies, getMovieBySlug, getMovieById, recordPurchase, hasPurchased, getPlaybackForMovie } from '../clients/supabase.js';
+import { listMovies, getMovieBySlug, getMovieById, hasPurchased, getPlaybackForMovie, recordPurchase, confirmPurchase, getUnconfirmedPurchase } from '../clients/supabase.js';
 import { stripe } from '../clients/stripe.js';
 import { config } from '../config.js';
 
@@ -65,12 +65,14 @@ router.post('/:movieId/checkout', async (req, res) => {
       metadata: { movieId: movie.id, slug: movie.slug, email },
     });
 
+    // Record purchase immediately with confirmed=false
     await recordPurchase({
       movieId: movie.id,
       email,
       stripeSessionId: session.id,
       amount,
       currency,
+      confirmed: false,
     });
 
     res.json({ clientSecret: session.client_secret });
@@ -82,9 +84,37 @@ router.post('/:movieId/checkout', async (req, res) => {
 
 router.get('/:movieId/watch', async (req, res) => {
   const { movieId } = req.params;
-  const { email } = req.query;
+  const { email, session_id } = req.query;
+
   try {
-    const allowed = await hasPurchased({ movieId, email });
+    let allowed = false;
+
+    // If session_id provided, verify with Stripe and confirm the purchase
+    if (session_id && stripe) {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status === 'paid' && session.metadata?.movieId === movieId) {
+        await confirmPurchase(session.id);
+        allowed = true;
+      }
+    }
+
+    // Fall back to checking existing confirmed purchase
+    if (!allowed && email) {
+      allowed = await hasPurchased({ movieId, email });
+
+      // If no confirmed purchase, check for unconfirmed and verify with Stripe
+      if (!allowed && stripe) {
+        const unconfirmed = await getUnconfirmedPurchase({ movieId, email });
+        if (unconfirmed) {
+          const session = await stripe.checkout.sessions.retrieve(unconfirmed.stripe_session_id);
+          if (session.payment_status === 'paid') {
+            await confirmPurchase(unconfirmed.stripe_session_id);
+            allowed = true;
+          }
+        }
+      }
+    }
+
     if (!allowed) {
       return res.status(402).json({ error: 'Purchase required' });
     }

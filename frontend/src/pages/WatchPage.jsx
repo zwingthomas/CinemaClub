@@ -6,6 +6,7 @@ import { fetchMovie, fetchWatchData } from '../services/api.js';
 function WatchPage() {
   const { movieId } = useParams();
   const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get('session_id');
   const [email, setEmail] = useState(searchParams.get('email') || '');
   const [movie, setMovie] = useState(null);
   const [playbackId, setPlaybackId] = useState('');
@@ -19,23 +20,37 @@ function WatchPage() {
   }, [movieId]);
 
   useEffect(() => {
+    // If we have a session_id (just paid), verify it immediately
+    if (sessionId) {
+      setLoading(true);
+      fetchWatchData(movieId, { sessionId })
+        .then((res) => {
+          setPlaybackId(res.playbackId);
+          setError('');
+        })
+        .catch(() => setError('We could not verify your payment.'))
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    // Otherwise, check by email if provided
     if (!email) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    fetchWatchData(movieId, email)
+    fetchWatchData(movieId, { email })
       .then((res) => {
         setPlaybackId(res.playbackId);
         setError('');
       })
       .catch(() => setError('We could not verify your access.'))
       .finally(() => setLoading(false));
-  }, [movieId, email]);
+  }, [movieId, email, sessionId]);
 
   const handleAccess = () => {
     setLoading(true);
-    fetchWatchData(movieId, email)
+    fetchWatchData(movieId, { email })
       .then((res) => {
         setPlaybackId(res.playbackId);
         setError('');

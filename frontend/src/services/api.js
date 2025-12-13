@@ -27,9 +27,10 @@ export async function createCheckoutSession(movieId, email) {
   return handleResponse(res);
 }
 
-export async function fetchWatchData(movieId, email) {
+export async function fetchWatchData(movieId, { email, sessionId } = {}) {
   const url = new URL(`${API_BASE}/movies/${movieId}/watch`);
   if (email) url.searchParams.set('email', email);
+  if (sessionId) url.searchParams.set('session_id', sessionId);
   const res = await fetch(url.toString());
   return handleResponse(res);
 }

@@ -39,7 +39,7 @@ export async function getMovieBySlug(slug) {
   return data;
 }
 
-export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency, rentalLength, watchExpiration }) {
+export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency, rentalLength, watchExpiration, confirmed = false }) {
   const { error } = await supabase.from('purchases').upsert(
     {
       movie_id: movieId,
@@ -49,9 +49,19 @@ export async function recordPurchase({ movieId, email, stripeSessionId, amount, 
       currency,
       rental_length: rentalLength,
       watch_experation: watchExpiration,
+      confirmed,
     },
     { onConflict: 'stripe_session_id' }
   );
+
+  if (error) throw error;
+}
+
+export async function confirmPurchase(stripeSessionId) {
+  const { error } = await supabase
+    .from('purchases')
+    .update({ confirmed: true })
+    .eq('stripe_session_id', stripeSessionId);
 
   if (error) throw error;
 }
@@ -63,10 +73,25 @@ export async function hasPurchased({ movieId, email }) {
     .select('id')
     .eq('movie_id', movieId)
     .eq('email', email)
+    .eq('confirmed', true)
     .maybeSingle();
 
   if (error) throw error;
   return Boolean(data);
+}
+
+export async function getUnconfirmedPurchase({ movieId, email }) {
+  if (!email) return null;
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('stripe_session_id')
+    .eq('movie_id', movieId)
+    .eq('email', email)
+    .eq('confirmed', false)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getPlaybackForMovie(movieId) {
