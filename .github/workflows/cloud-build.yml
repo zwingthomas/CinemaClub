@@ -22,6 +22,9 @@ jobs:
       GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || secrets.GAR_REPOSITORY }}
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
       BUILD_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
+      RUN_REGION: ${{ vars.RUN_REGION || secrets.RUN_REGION || vars.GAR_REGION || secrets.GAR_REGION }}
+      BACKEND_SERVICE: ${{ vars.BACKEND_SERVICE || secrets.BACKEND_SERVICE || 'cinemaclub-backend' }}
+      FRONTEND_SERVICE: ${{ vars.FRONTEND_SERVICE || secrets.FRONTEND_SERVICE || 'cinemaclub-frontend' }}
       TAG: ${{ github.sha }}
     steps:
       - name: Checkout
@@ -35,6 +38,10 @@ jobs:
           fi
           if [ -z "${GAR_REGION}" ] || [ -z "${GAR_REPOSITORY}" ]; then
             echo "GAR_REGION or GAR_REPOSITORY is empty. Set repo variables or secrets accordingly." >&2
+            exit 1
+          fi
+          if [ -z "${RUN_REGION}" ]; then
+            echo "RUN_REGION is empty. Set repo variable RUN_REGION (defaults to GAR_REGION if set)." >&2
             exit 1
           fi
 
@@ -61,4 +68,4 @@ jobs:
             --project="${PROJECT_ID}" \
             --config=cloudbuild.yaml \
             ${SA_FLAG} \
-            --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL},_TAG=${TAG}
+            --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL},_TAG=${TAG},_RUN_REGION=${RUN_REGION},_BACKEND_SERVICE=${BACKEND_SERVICE},_FRONTEND_SERVICE=${FRONTEND_SERVICE}

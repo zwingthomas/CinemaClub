@@ -21,6 +21,30 @@ steps:
       - VITE_API_BASE_URL=${_VITE_API_BASE_URL}
       - frontend
 
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-backend
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_BACKEND_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${_TAG}
+      - --region=${_RUN_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-frontend
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_FRONTEND_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:${_TAG}
+      - --region=${_RUN_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${_TAG}
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:latest
@@ -32,6 +56,9 @@ substitutions:
   _REPOSITORY: cinemaclub
   _VITE_API_BASE_URL: http://backend:4000/api
   _TAG: dev
+  _RUN_REGION: us-central1
+  _BACKEND_SERVICE: cinemaclub-backend
+  _FRONTEND_SERVICE: cinemaclub-frontend
 
 options:
   logging: CLOUD_LOGGING_ONLY
