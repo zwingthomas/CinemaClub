@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createCheckout, fetchMovie } from '../services/api.js';
+import { getStripe } from '../services/stripe.js';
 
 function MoviePage() {
   const { slug } = useParams();
@@ -24,6 +25,12 @@ function MoviePage() {
       return;
     }
     if (!movie) return;
+    try {
+      await getStripe();
+    } catch (e) {
+      setError('Payments are unavailable right now. Missing Stripe configuration.');
+      return;
+    }
     setProcessing(true);
     setError('');
     try {
