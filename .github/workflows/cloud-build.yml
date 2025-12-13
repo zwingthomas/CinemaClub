@@ -25,6 +25,7 @@ jobs:
       RUN_REGION: ${{ vars.RUN_REGION || secrets.RUN_REGION || vars.GAR_REGION || secrets.GAR_REGION }}
       BACKEND_SERVICE: ${{ vars.BACKEND_SERVICE || secrets.BACKEND_SERVICE || 'cinemaclub-backend' }}
       FRONTEND_SERVICE: ${{ vars.FRONTEND_SERVICE || secrets.FRONTEND_SERVICE || 'cinemaclub-frontend' }}
+      RUN_SERVICE_ACCOUNT: ${{ vars.RUN_SERVICE_ACCOUNT || secrets.RUN_SERVICE_ACCOUNT || secrets.GCP_SERVICE_ACCOUNT || vars.GCP_SERVICE_ACCOUNT }}
       TAG: ${{ github.sha }}
     steps:
       - name: Checkout
@@ -42,6 +43,10 @@ jobs:
           fi
           if [ -z "${RUN_REGION}" ]; then
             echo "RUN_REGION is empty. Set repo variable RUN_REGION (defaults to GAR_REGION if set)." >&2
+            exit 1
+          fi
+          if [ -z "${RUN_SERVICE_ACCOUNT}" ]; then
+            echo "RUN_SERVICE_ACCOUNT is empty. Set repo variable or secret RUN_SERVICE_ACCOUNT to the Cloud Run runtime service account email." >&2
             exit 1
           fi
 
@@ -68,4 +73,4 @@ jobs:
             --project="${PROJECT_ID}" \
             --config=cloudbuild.yaml \
             ${SA_FLAG} \
-            --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL},_TAG=${TAG},_RUN_REGION=${RUN_REGION},_BACKEND_SERVICE=${BACKEND_SERVICE},_FRONTEND_SERVICE=${FRONTEND_SERVICE}
+            --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL},_TAG=${TAG},_RUN_REGION=${RUN_REGION},_BACKEND_SERVICE=${BACKEND_SERVICE},_FRONTEND_SERVICE=${FRONTEND_SERVICE},_RUN_SERVICE_ACCOUNT=${RUN_SERVICE_ACCOUNT}

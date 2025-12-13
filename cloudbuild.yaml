@@ -32,6 +32,7 @@ steps:
       - --region=${_RUN_REGION}
       - --platform=managed
       - --allow-unauthenticated
+      - --service-account=${_RUN_SERVICE_ACCOUNT}
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: deploy-frontend
@@ -44,6 +45,7 @@ steps:
       - --region=${_RUN_REGION}
       - --platform=managed
       - --allow-unauthenticated
+      - --service-account=${_RUN_SERVICE_ACCOUNT}
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/backend:${_TAG}
@@ -59,6 +61,7 @@ substitutions:
   _RUN_REGION: us-central1
   _BACKEND_SERVICE: cinemaclub-backend
   _FRONTEND_SERVICE: cinemaclub-frontend
+  _RUN_SERVICE_ACCOUNT: REPLACE_ME_RUN_SA
 
 options:
   logging: CLOUD_LOGGING_ONLY
