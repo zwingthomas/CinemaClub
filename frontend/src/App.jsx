@@ -14,7 +14,6 @@ function NavBar() {
           <span className="brand-dot" />
           <span>CinemaClub</span>
         </Link>
-        <p className="brand-sub">Indie stories. Intimate screens.</p>
       </div>
       <nav className="nav-links">
         <Link className={location.pathname === '/' ? 'active' : ''} to="/">
