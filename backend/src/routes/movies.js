@@ -1,5 +1,5 @@
 import express from 'express';
-import { listMovies, getMovieBySlug, getMovieById, recordPurchase, hasPurchased, getPlaybackForMovie } from '../clients/supabase.js';
+import { listMovies, getMovieBySlug, getMovieById, hasPurchased, getPlaybackForMovie, recordPurchase, confirmPurchase, getUnconfirmedPurchase } from '../clients/supabase.js';
 import { stripe } from '../clients/stripe.js';
 import { config } from '../config.js';
 
@@ -34,54 +34,87 @@ router.get('/:slugOrId', async (req, res) => {
 
 router.post('/:movieId/checkout', async (req, res) => {
   const { movieId } = req.params;
-  const { email, successUrl, cancelUrl } = req.body;
+  const { email } = req.body;
 
   if (!stripe) return res.status(500).json({ error: 'Stripe not configured' });
-  if (!email) return res.status(400).json({ error: 'Email required for checkout' });
+  if (!email) return res.status(400).json({ error: 'Email required' });
 
   try {
     const movie = await getMovieById(movieId);
+    const amount = movie.price_cents || config.stripePriceDefault;
+    const currency = movie.currency || config.stripeCurrency;
+
     const session = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
       mode: 'payment',
       customer_email: email,
       line_items: [
         {
           price_data: {
-            currency: movie.currency || config.stripeCurrency,
+            currency,
             product_data: {
               name: movie.title,
               description: movie.synopsis?.slice(0, 140),
             },
-            unit_amount: movie.price_cents || config.stripePriceDefault,
+            unit_amount: amount,
           },
           quantity: 1,
         },
       ],
-      success_url: successUrl || `${config.frontendOrigin}/watch/${movie.id}?email=${encodeURIComponent(email)}`,
-      cancel_url: cancelUrl || `${config.frontendOrigin}/movies/${movie.slug}`,
-      metadata: { movieId: movie.id, slug: movie.slug },
+      return_url: `${config.frontendOrigin}/watch/${movie.id}?session_id={CHECKOUT_SESSION_ID}`,
+      metadata: { movieId: movie.id, slug: movie.slug, email },
     });
 
+    // Record purchase immediately with confirmed=false
     await recordPurchase({
       movieId: movie.id,
       email,
       stripeSessionId: session.id,
-      amount: movie.price_cents || config.stripePriceDefault,
-      currency: movie.currency || config.stripeCurrency,
+      amount,
+      currency,
+      confirmed: false,
     });
 
-    res.json({ checkoutUrl: session.url, sessionId: session.id });
+    res.json({ clientSecret: session.client_secret });
   } catch (error) {
-    console.error('Error creating checkout', error);
+    console.error('Error creating checkout session', error);
     res.status(500).json({ error: 'Unable to create checkout session' });
   }
 });
 
 router.get('/:movieId/watch', async (req, res) => {
   const { movieId } = req.params;
-  const { email } = req.query;
+  const { email, session_id } = req.query;
+
   try {
-    const allowed = await hasPurchased({ movieId, email });
+    let allowed = false;
+
+    // If session_id provided, verify with Stripe and confirm the purchase
+    if (session_id && stripe) {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status === 'paid' && session.metadata?.movieId === movieId) {
+        await confirmPurchase(session.id);
+        allowed = true;
+      }
+    }
+
+    // Fall back to checking existing confirmed purchase
+    if (!allowed && email) {
+      allowed = await hasPurchased({ movieId, email });
+
+      // If no confirmed purchase, check for unconfirmed and verify with Stripe
+      if (!allowed && stripe) {
+        const unconfirmed = await getUnconfirmedPurchase({ movieId, email });
+        if (unconfirmed) {
+          const session = await stripe.checkout.sessions.retrieve(unconfirmed.stripe_session_id);
+          if (session.payment_status === 'paid') {
+            await confirmPurchase(unconfirmed.stripe_session_id);
+            allowed = true;
+          }
+        }
+      }
+    }
+
     if (!allowed) {
       return res.status(402).json({ error: 'Purchase required' });
     }

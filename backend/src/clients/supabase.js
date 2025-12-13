@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
 
 if (!config.supabaseUrl || !config.supabaseServiceKey) {
-  console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
+  console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
 }
 
 const supabase = createClient(config.supabaseUrl || '', config.supabaseServiceKey || '');
@@ -10,8 +10,7 @@ const supabase = createClient(config.supabaseUrl || '', config.supabaseServiceKe
 export async function listMovies() {
   const { data, error } = await supabase
     .from('movies')
-    .select('id, slug, title, synopsis, runtime_minutes, release_year, tags, director, hero_image_url, still_image_url, price_cents, currency, featured')
-    .order('featured', { ascending: false })
+    .select('id, slug, title, synopsis, runtime_minutes, release_year, hero_image_url, still_image_url, price_cents, currency')
     .order('release_year', { ascending: false });
 
   if (error) throw error;
@@ -40,7 +39,7 @@ export async function getMovieBySlug(slug) {
   return data;
 }
 
-export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency }) {
+export async function recordPurchase({ movieId, email, stripeSessionId, amount, currency, rentalLength, watchExpiration, confirmed = false }) {
   const { error } = await supabase.from('purchases').upsert(
     {
       movie_id: movieId,
@@ -48,9 +47,21 @@ export async function recordPurchase({ movieId, email, stripeSessionId, amount, 
       stripe_session_id: stripeSessionId,
       amount,
       currency,
+      rental_length: rentalLength,
+      watch_experation: watchExpiration,
+      confirmed,
     },
     { onConflict: 'stripe_session_id' }
   );
+
+  if (error) throw error;
+}
+
+export async function confirmPurchase(stripeSessionId) {
+  const { error } = await supabase
+    .from('purchases')
+    .update({ confirmed: true })
+    .eq('stripe_session_id', stripeSessionId);
 
   if (error) throw error;
 }
@@ -62,10 +73,25 @@ export async function hasPurchased({ movieId, email }) {
     .select('id')
     .eq('movie_id', movieId)
     .eq('email', email)
+    .eq('confirmed', true)
     .maybeSingle();
 
   if (error) throw error;
   return Boolean(data);
+}
+
+export async function getUnconfirmedPurchase({ movieId, email }) {
+  if (!email) return null;
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('stripe_session_id')
+    .eq('movie_id', movieId)
+    .eq('email', email)
+    .eq('confirmed', false)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getPlaybackForMovie(movieId) {
@@ -90,16 +116,11 @@ export async function seedSampleMovies() {
         synopsis: 'A projectionist fights to save an indie cinema on closing night.',
         runtime_minutes: 104,
         release_year: 2023,
-        tags: ['drama', 'nostalgia'],
-        director: 'R. Castillo',
-        cast: ['Mara Voss', 'Theo Park'],
-        rating: 'PG-13',
         hero_image_url: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1600&q=80',
         still_image_url: 'https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?auto=format&fit=crop&w=1600&q=80',
         price_cents: 1200,
         currency: 'usd',
         mux_playback_id: 'your-mux-playback-id-1',
-        featured: true,
         created_at: now,
         updated_at: now,
       },
@@ -110,16 +131,11 @@ export async function seedSampleMovies() {
         synopsis: 'After a blackout, a city learns to listen before the lights return.',
         runtime_minutes: 92,
         release_year: 2024,
-        tags: ['sci-fi', 'arthouse'],
-        director: 'Kei Morita',
-        cast: ['Aria Chen', 'Jonas Reed'],
-        rating: 'PG',
         hero_image_url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
         still_image_url: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80',
         price_cents: 900,
         currency: 'usd',
         mux_playback_id: 'your-mux-playback-id-2',
-        featured: false,
         created_at: now,
         updated_at: now,
       },
