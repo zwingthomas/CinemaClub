@@ -38,11 +38,8 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Run Cloud Build
-        uses: google-github-actions/cloud-build@v2
-        with:
-          project_id: ${{ env.PROJECT_ID }}
-          config: cloudbuild.yaml
-          substitutions: |
-            _REGION=${{ env.GAR_REGION }}
-            _REPOSITORY=${{ env.GAR_REPOSITORY }}
-            _VITE_API_BASE_URL=${{ env.VITE_API_BASE_URL }}
+        run: |
+          gcloud builds submit . \
+            --project="${PROJECT_ID}" \
+            --config=cloudbuild.yaml \
+            --substitutions=_REGION=${GAR_REGION},_REPOSITORY=${GAR_REPOSITORY},_VITE_API_BASE_URL=${VITE_API_BASE_URL}
