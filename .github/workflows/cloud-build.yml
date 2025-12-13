@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID || secrets.GCP_PROJECT_ID }}
-      GAR_REGION: ${{ vars.GAR_REGION }}
-      GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
-      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+      GAR_REGION: ${{ vars.GAR_REGION || secrets.GAR_REGION }}
+      GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY || secrets.GAR_REPOSITORY }}
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || secrets.VITE_API_BASE_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,11 +28,11 @@ jobs:
       - name: Validate config
         run: |
           if [ -z "${PROJECT_ID}" ]; then
-            echo "PROJECT_ID is empty. Set repo variable GCP_PROJECT_ID (or secret) to your GCP project ID." >&2
+            echo "PROJECT_ID is empty. Set repo variable or secret GCP_PROJECT_ID to your GCP project ID." >&2
             exit 1
           fi
           if [ -z "${GAR_REGION}" ] || [ -z "${GAR_REPOSITORY}" ]; then
-            echo "GAR_REGION or GAR_REPOSITORY is empty. Set repo variables accordingly." >&2
+            echo "GAR_REGION or GAR_REPOSITORY is empty. Set repo variables or secrets accordingly." >&2
             exit 1
           fi
 
