@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "NODE_ENV=development nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed": "node src/seed.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",

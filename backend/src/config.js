@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 const requiredEnv = ['SUPABASE_URL', 'STRIPE_SECRET_KEY'];
+
 const missing = requiredEnv.filter((key) => !process.env[key]);
 if (!supabaseKey) {
   missing.push('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY');
