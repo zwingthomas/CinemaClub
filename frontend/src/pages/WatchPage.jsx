@@ -32,23 +32,10 @@ function WatchPage() {
         })
         .catch(() => setError('We could not verify your payment.'))
         .finally(() => setLoading(false));
-      return;
-    }
-
-    // Otherwise, check by email if provided
-    if (!email) {
+    } else {
       setLoading(false);
-      return;
     }
-    setLoading(true);
-    fetchWatchData(movieId, { email })
-      .then((res) => {
-        setPlaybackId(res.playbackId);
-        setError('');
-      })
-      .catch(() => setError('We could not verify your access.'))
-      .finally(() => setLoading(false));
-  }, [movieId, email, sessionId]);
+  }, [movieId, sessionId]);
 
   const handleAccess = () => {
     setLoading(true);
@@ -85,7 +72,10 @@ function WatchPage() {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError('');
+              }}
             />
             <button className="button primary" onClick={handleAccess} disabled={loading || !email}>
               {loading ? 'Checking…' : 'Unlock stream'}
