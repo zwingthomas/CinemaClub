@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
 
-if (!config.supabaseUrl || !config.supabaseSecretKey) {
+if (!config.supabaseUrl || !config.supabaseServiceKey) {
   console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
 }
 
-const supabase = createClient(config.supabaseUrl || '', config.supabaseSecretKey || '');
+const supabase = createClient(config.supabaseUrl || '', config.supabaseServiceKey || '');
 
 export async function listMovies() {
   const { data, error } = await supabase
