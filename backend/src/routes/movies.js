@@ -45,6 +45,10 @@ router.post('/:movieId/checkout', async (req, res) => {
     const movie = await getMovieById(movieId);
     if (!movie) return res.status(404).json({ error: 'Movie not found' });
 
+    const baseOrigin = config.frontendOrigin?.startsWith('http')
+      ? config.frontendOrigin
+      : `https://${config.frontendOrigin}`;
+
     const amount = movie.price_cents || config.stripePriceDefault;
     const currency = movie.currency || config.stripeCurrency;
 
@@ -65,7 +69,7 @@ router.post('/:movieId/checkout', async (req, res) => {
           quantity: 1,
         },
       ],
-      return_url: `${config.frontendOrigin}/watch/${movie.id}?session_id={CHECKOUT_SESSION_ID}`,
+      return_url: `${baseOrigin}/watch/${movie.id}?session_id={CHECKOUT_SESSION_ID}`,
       metadata: { movieId: movie.id, slug: movie.slug, email },
     });
 

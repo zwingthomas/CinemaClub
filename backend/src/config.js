@@ -27,3 +27,6 @@ export const config = {
     .map((val) => val.trim().replace(/\/+$/, ''))
     .filter(Boolean),
 };
+
+// Primary frontend origin for redirects/return URLs (first in list).
+config.frontendOrigin = config.frontendOrigins[0] || 'http://localhost:5173';
