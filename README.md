@@ -48,7 +48,7 @@ CinemaClub is a dockerized starter for streaming indie films: a React frontend w
 - Sample rows in `supabase/seed/movies.sql`.
 
 ## Notes
-- Keep the Supabase service role key server-side only (never expose to the frontend).
+- Keep the Supabase secret key server-side only (never expose to the frontend).
 - Update `mux_playback_id` per film with the ID from your Mux asset.
 - Stripe webhook handling is not included; the API records purchases optimistically when creating Checkout sessions.
 - Configure the rental window via `PURCHASE_VALIDITY_HOURS` (defaults to 48); access checks only pass if a purchase was made within that window.

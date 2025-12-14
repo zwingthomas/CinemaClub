@@ -4,8 +4,13 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'STRIPE_SECRET_KEY'];
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+const requiredEnv = ['SUPABASE_URL', 'STRIPE_SECRET_KEY'];
+
 const missing = requiredEnv.filter((key) => !process.env[key]);
+if (!supabaseKey) {
+  missing.push('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY');
+}
 
 if (missing.length) {
   console.warn(`Missing env vars: ${missing.join(', ')}`);
@@ -19,7 +24,8 @@ const defaultPurchaseWindow = Number.isFinite(parsedPurchaseWindow) && parsedPur
 export const config = {
   port: process.env.PORT || 4000,
   supabaseUrl: process.env.SUPABASE_URL,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  supabaseServiceKey: supabaseKey,
+  supabaseSecretKey: supabaseKey,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripePriceDefault: Number(process.env.STRIPE_PRICE_DEFAULT || 1200),
