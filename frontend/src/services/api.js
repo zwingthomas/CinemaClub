@@ -32,11 +32,18 @@ export async function fetchMovie(slugOrId) {
   return handleResponse(res);
 }
 
-export async function createCheckoutSession(movieId, email) {
+export async function checkPurchaseStatus(movieId, email) {
+  const url = new URL(`${API_BASE}/movies/${movieId}/purchase-status`);
+  if (email) url.searchParams.set('email', email);
+  const res = await fetch(url.toString());
+  return handleResponse(res);
+}
+
+export async function createCheckout(movieId, { email, successUrl, cancelUrl }) {
   const res = await fetch(`${API_BASE}/movies/${movieId}/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, successUrl, cancelUrl }),
   });
   return handleResponse(res);
 }

@@ -44,7 +44,12 @@ function WatchPage() {
         setPlaybackId(res.playbackId);
         setError('');
       })
-      .catch(() => setError('Access still not confirmed.'))
+      .catch((err) => {
+        const message = err?.message?.toLowerCase().includes('expired')
+          ? 'Your rental window has expired. Please rent again.'
+          : 'Access still not confirmed.';
+        setError(message);
+      })
       .finally(() => setLoading(false));
   };
 
