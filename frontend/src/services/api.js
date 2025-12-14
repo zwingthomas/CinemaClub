@@ -1,4 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+function normalizeApiBase(base) {
+  try {
+    const url = new URL(base);
+    const pathname = url.pathname.replace(/\/+$/, '');
+    url.pathname = pathname.endsWith('/api') ? pathname : `${pathname}/api`;
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    const trimmed = base.replace(/\/+$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+}
+
+const API_BASE = normalizeApiBase(rawBase);
 
 async function handleResponse(res) {
   if (!res.ok) {
