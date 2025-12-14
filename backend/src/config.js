@@ -20,6 +20,7 @@ export const config = {
   port: process.env.PORT || 4000,
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceKey: supabaseKey,
+  supabaseSecretKey: supabaseKey,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripePriceDefault: Number(process.env.STRIPE_PRICE_DEFAULT || 1200),
