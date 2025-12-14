@@ -55,17 +55,45 @@ export async function recordPurchase({ movieId, email, stripeSessionId, amount, 
   if (error) throw error;
 }
 
-export async function hasPurchased({ movieId, email }) {
-  if (!email) return false;
-  const { data, error } = await supabase
+export async function getValidPurchase({ movieId, email, withinHours = config.purchaseValidityHours }) {
+  if (!email) return null;
+
+  const windowHours = Number.isFinite(withinHours) && withinHours > 0 ? withinHours : config.purchaseValidityHours;
+  const cutoff = windowHours
+    ? new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString()
+    : null;
+
+  let query = supabase
     .from('purchases')
-    .select('id')
+    .select('id, created_at')
     .eq('movie_id', movieId)
     .eq('email', email)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (cutoff) {
+    query = query.gte('created_at', cutoff);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
-  return Boolean(data);
+  if (!data) return null;
+
+  if (cutoff && data.created_at < cutoff) {
+    return null;
+  }
+
+  const expiresAt = windowHours
+    ? new Date(new Date(data.created_at).getTime() + windowHours * 60 * 60 * 1000).toISOString()
+    : null;
+
+  return { ...data, expires_at: expiresAt };
+}
+
+export async function hasPurchased({ movieId, email, withinHours }) {
+  const purchase = await getValidPurchase({ movieId, email, withinHours });
+  return Boolean(purchase);
 }
 
 export async function getPlaybackForMovie(movieId) {

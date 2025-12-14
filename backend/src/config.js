@@ -11,6 +11,11 @@ if (missing.length) {
   console.warn(`Missing env vars: ${missing.join(', ')}`);
 }
 
+const parsedPurchaseWindow = Number(process.env.PURCHASE_VALIDITY_HOURS);
+const defaultPurchaseWindow = Number.isFinite(parsedPurchaseWindow) && parsedPurchaseWindow > 0
+  ? parsedPurchaseWindow
+  : 48;
+
 export const config = {
   port: process.env.PORT || 4000,
   supabaseUrl: process.env.SUPABASE_URL,
@@ -19,6 +24,7 @@ export const config = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripePriceDefault: Number(process.env.STRIPE_PRICE_DEFAULT || 1200),
   stripeCurrency: process.env.STRIPE_CURRENCY || 'usd',
+  purchaseValidityHours: defaultPurchaseWindow,
   muxTokenId: process.env.MUX_TOKEN_ID,
   muxTokenSecret: process.env.MUX_TOKEN_SECRET,
   // Support a comma-separated list so staging/prod/frontends can all be allowed.

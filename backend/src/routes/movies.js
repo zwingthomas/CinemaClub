@@ -1,5 +1,12 @@
 import express from 'express';
-import { listMovies, getMovieBySlug, getMovieById, recordPurchase, hasPurchased, getPlaybackForMovie } from '../clients/supabase.js';
+import {
+  listMovies,
+  getMovieBySlug,
+  getMovieById,
+  recordPurchase,
+  getPlaybackForMovie,
+  getValidPurchase,
+} from '../clients/supabase.js';
 import { stripe } from '../clients/stripe.js';
 import { config } from '../config.js';
 
@@ -32,9 +39,27 @@ router.get('/:slugOrId', async (req, res) => {
   }
 });
 
+router.get('/:movieId/purchase-status', async (req, res) => {
+  const { movieId } = req.params;
+  const { email } = req.query;
+
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  try {
+    const purchase = await getValidPurchase({ movieId, email });
+    if (!purchase) {
+      return res.json({ purchased: false });
+    }
+    return res.json({ purchased: true, expiresAt: purchase.expires_at, purchasedAt: purchase.created_at });
+  } catch (error) {
+    console.error('Error checking purchase status', error);
+    return res.status(500).json({ error: 'Unable to verify purchase' });
+  }
+});
+
 router.post('/:movieId/checkout', async (req, res) => {
   const { movieId } = req.params;
-  const { email } = req.body;
+  const { email, successUrl, cancelUrl } = req.body;
 
   if (!stripe || !config.stripeSecretKey) {
     return res.status(500).json({ error: 'Stripe not configured' });
@@ -53,9 +78,10 @@ router.post('/:movieId/checkout', async (req, res) => {
     const currency = movie.currency || config.stripeCurrency;
 
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
       mode: 'payment',
       customer_email: email,
+      success_url: successUrl || `${baseOrigin}/watch/${movie.id}?email=${encodeURIComponent(email)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${baseOrigin}/movies/${movie.slug}`,
       line_items: [
         {
           price_data: {
@@ -79,10 +105,9 @@ router.post('/:movieId/checkout', async (req, res) => {
       stripeSessionId: session.id,
       amount,
       currency,
-      confirmed: false,
     });
 
-    res.json({ clientSecret: session.client_secret, sessionId: session.id });
+    res.json({ checkoutUrl: session.url, sessionId: session.id });
   } catch (error) {
     const message = error?.message || 'Unknown error';
     console.error('Error creating checkout session', {
@@ -99,15 +124,19 @@ router.get('/:movieId/watch', async (req, res) => {
   const { movieId } = req.params;
   const { email } = req.query;
   try {
-    const allowed = await hasPurchased({ movieId, email });
-    if (!allowed) {
-      return res.status(402).json({ error: 'Purchase required' });
+    const purchase = await getValidPurchase({ movieId, email });
+    if (!purchase) {
+      return res.status(402).json({ error: 'Purchase required or expired' });
     }
 
     const playbackId = await getPlaybackForMovie(movieId);
     if (!playbackId) return res.status(404).json({ error: 'Playback not found' });
 
-    res.json({ playbackId, muxStreamUrl: `https://stream.mux.com/${playbackId}.m3u8` });
+    res.json({
+      playbackId,
+      muxStreamUrl: `https://stream.mux.com/${playbackId}.m3u8`,
+      expiresAt: purchase.expires_at,
+    });
   } catch (error) {
     console.error('Error getting watch data', error);
     res.status(500).json({ error: 'Unable to load playback' });

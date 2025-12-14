@@ -18,6 +18,13 @@ export async function fetchMovie(slugOrId) {
   return handleResponse(res);
 }
 
+export async function checkPurchaseStatus(movieId, email) {
+  const url = new URL(`${API_BASE}/movies/${movieId}/purchase-status`);
+  if (email) url.searchParams.set('email', email);
+  const res = await fetch(url.toString());
+  return handleResponse(res);
+}
+
 export async function createCheckout(movieId, payload) {
   const res = await fetch(`${API_BASE}/movies/${movieId}/checkout`, {
     method: 'POST',

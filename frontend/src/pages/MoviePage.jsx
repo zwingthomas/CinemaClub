@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createCheckout, fetchMovie } from '../services/api.js';
+import { checkPurchaseStatus, createCheckout, fetchMovie } from '../services/api.js';
 
 function MoviePage() {
   const { slug } = useParams();
@@ -27,9 +27,23 @@ function MoviePage() {
     setProcessing(true);
     setError('');
     try {
+      const status = await checkPurchaseStatus(movie.id, email);
+      if (status?.purchased) {
+        setProcessing(false);
+        navigate(`/watch/${movie.id}?email=${encodeURIComponent(email)}`);
+        return;
+      }
+    } catch (err) {
+      setError('We could not verify your access. Please try again.');
+      setProcessing(false);
+      return;
+    }
+
+    try {
       const successUrl = `${window.location.origin}/watch/${movie.id}?email=${encodeURIComponent(email)}`;
       const cancelUrl = `${window.location.origin}/movies/${movie.slug}`;
       const res = await createCheckout(movie.id, { email, successUrl, cancelUrl });
+      if (!res.checkoutUrl) throw new Error('Checkout URL missing');
       window.location.href = res.checkoutUrl;
     } catch (e) {
       setError('Checkout could not start. Try again.');
