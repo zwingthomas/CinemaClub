@@ -66,25 +66,29 @@ function WatchPage() {
         <div>
           <p className="eyebrow">Now screening</p>
           <h1>{movie?.title || 'CinemaClub screening room'}</h1>
-          <p className="lede">Claim access with the email used at checkout. Your stream comes straight from Mux.</p>
-          <div className="access-row">
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError('');
-              }}
-            />
-            <button className="button primary" onClick={handleAccess} disabled={loading || !email}>
-              {loading ? 'Checking…' : 'Unlock stream'}
-            </button>
-            <Link className="button ghost" to={movie ? `/movies/${movie.slug}` : '/'}>
-              Back to details
-            </Link>
-          </div>
-          {error && <p className="error">{error}</p>}
+          {!playbackId && (
+            <>
+              <p className="lede">Claim access with the email used at checkout. Your stream comes straight from Mux.</p>
+              <div className="access-row">
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError('');
+                  }}
+                />
+                <button className="button primary" onClick={handleAccess} disabled={loading || !email}>
+                  {loading ? 'Checking…' : 'Unlock stream'}
+                </button>
+                <Link className="button ghost" to={movie ? `/movies/${movie.slug}` : '/'}>
+                  Back to details
+                </Link>
+              </div>
+              {error && <p className="error">{error}</p>}
+            </>
+          )}
         </div>
       </div>
       <div className="player-shell">
