@@ -2,10 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
 
 if (!config.supabaseUrl || !config.supabaseServiceKey) {
-  console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
+  console.warn('Supabase not fully configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
 }
 
 const supabase = createClient(config.supabaseUrl || '', config.supabaseServiceKey || '');
+
+const WATCH_DEFAULT_SECONDS = 172800; // 48 hours
+const RENTAL_DEFAULT_SECONDS = 604800; // 7 days
 
 export async function listMovies() {
   const { data, error } = await supabase
@@ -48,7 +51,7 @@ export async function recordPurchase({ movieId, email, stripeSessionId, amount, 
       amount,
       currency,
       rental_length: rentalLength,
-      watch_experation: watchDuration || 172800, // 48 hours in seconds
+      watch_experation: watchDuration || WATCH_DEFAULT_SECONDS,
       confirmed,
     },
     { onConflict: 'stripe_session_id' }
@@ -67,33 +70,51 @@ export async function confirmPurchase(stripeSessionId) {
 }
 
 export async function hasPurchased({ movieId, email }) {
-  if (!email) return false;
+  const purchase = await getValidPurchase({ movieId, email });
+  return Boolean(purchase);
+}
+
+function computeExpiration(purchase) {
+  const watchDurationSeconds = purchase.watch_experation || WATCH_DEFAULT_SECONDS;
+  const rentalLengthSeconds = purchase.rental_length || RENTAL_DEFAULT_SECONDS;
+
+  if (purchase.watch_started_at) {
+    const watchExpires = new Date(new Date(purchase.watch_started_at).getTime() + watchDurationSeconds * 1000);
+    return { expiresAt: watchExpires, window: 'watch' };
+  }
+
+  const rentalExpires = new Date(new Date(purchase.created_at).getTime() + rentalLengthSeconds * 1000);
+  return { expiresAt: rentalExpires, window: 'rental' };
+}
+
+export async function getValidPurchase({ movieId, email }) {
+  if (!email) return null;
+
   const { data: purchases, error } = await supabase
     .from('purchases')
-    .select('id, watch_experation, watch_started_at, rental_length, created_at')
+    .select('id, watch_experation, watch_started_at, rental_length, created_at, confirmed')
     .eq('movie_id', movieId)
     .eq('email', email)
     .eq('confirmed', true)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  if (!purchases || purchases.length === 0) return false;
+  if (!purchases || purchases.length === 0) return null;
 
   const now = new Date();
-
-  // Check if any purchase is still valid
-  return purchases.some((p) => {
-    if (p.watch_started_at) {
-      // Watch window started - check if it's still valid
-      const watchDuration = p.watch_experation || 172800; // 48 hours default
-      const watchExpires = new Date(new Date(p.watch_started_at).getTime() + watchDuration * 1000);
-      return watchExpires > now;
-    }
-    // Watch window hasn't started - check if rental window is still open
-    const rentalLengthSeconds = p.rental_length || 604800;
-    const rentalExpiration = new Date(new Date(p.created_at).getTime() + rentalLengthSeconds * 1000);
-    return rentalExpiration > now;
+  const validPurchase = purchases.find((p) => {
+    const { expiresAt } = computeExpiration(p);
+    return expiresAt > now;
   });
+
+  if (!validPurchase) return null;
+
+  const { expiresAt, window } = computeExpiration(validPurchase);
+  return {
+    ...validPurchase,
+    expires_at: expiresAt.toISOString(),
+    window,
+  };
 }
 
 export async function getUnconfirmedPurchase({ movieId, email }) {
@@ -139,23 +160,15 @@ export async function startWatchSession({ movieId, email }) {
 
   // Find a valid purchase: either has active watch window, or rental window still open
   const validPurchase = purchases.find((p) => {
-    if (p.watch_started_at) {
-      // Watch window started - check if it's still valid
-      const watchDuration = p.watch_experation || 172800; // 48 hours default
-      const watchExpires = new Date(new Date(p.watch_started_at).getTime() + watchDuration * 1000);
-      return watchExpires > now;
-    }
-    // Watch window hasn't started - check if rental window is still open
-    const rentalLengthSeconds = p.rental_length || 604800;
-    const rentalExpiration = new Date(new Date(p.created_at).getTime() + rentalLengthSeconds * 1000);
-    return rentalExpiration > now;
+    const { expiresAt } = computeExpiration(p);
+    return expiresAt > now;
   });
 
   if (!validPurchase) return null;
 
   // If watch window already started, return existing expiration
   if (validPurchase.watch_started_at) {
-    const watchDuration = validPurchase.watch_experation || 172800;
+    const watchDuration = validPurchase.watch_experation || WATCH_DEFAULT_SECONDS;
     const watchExpiration = new Date(new Date(validPurchase.watch_started_at).getTime() + watchDuration * 1000).toISOString();
     return { watchExpiration };
   }
@@ -169,7 +182,7 @@ export async function startWatchSession({ movieId, email }) {
 
   if (updateError) throw updateError;
 
-  const watchDuration = validPurchase.watch_experation || 172800;
+  const watchDuration = validPurchase.watch_experation || WATCH_DEFAULT_SECONDS;
   const watchExpiration = new Date(new Date(watchStartedAt).getTime() + watchDuration * 1000).toISOString();
   return { watchExpiration };
 }

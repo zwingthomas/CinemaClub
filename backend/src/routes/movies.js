@@ -1,5 +1,16 @@
 import express from 'express';
-import { listMovies, getMovieBySlug, getMovieById, hasPurchased, getPlaybackForMovie, recordPurchase, confirmPurchase, getUnconfirmedPurchase, startWatchSession } from '../clients/supabase.js';
+import {
+  listMovies,
+  getMovieBySlug,
+  getMovieById,
+  hasPurchased,
+  getPlaybackForMovie,
+  recordPurchase,
+  confirmPurchase,
+  getUnconfirmedPurchase,
+  startWatchSession,
+  getValidPurchase,
+} from '../clients/supabase.js';
 import { stripe } from '../clients/stripe.js';
 import { config } from '../config.js';
 
@@ -88,7 +99,6 @@ router.post('/:movieId/checkout', async (req, res) => {
           quantity: 1,
         },
       ],
-      return_url: `${baseOrigin}/watch/${movie.id}?session_id={CHECKOUT_SESSION_ID}`,
       metadata: { movieId: movie.id, slug: movie.slug, email },
     });
 
