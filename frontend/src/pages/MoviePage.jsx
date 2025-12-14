@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createCheckout, fetchMovie } from '../services/api.js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { createCheckoutSession, fetchMovie } from '../services/api.js';
+import { getStripe } from '../services/stripe.js';
 
 function MoviePage() {
   const { slug } = useParams();
@@ -9,6 +11,8 @@ function MoviePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -18,25 +22,28 @@ function MoviePage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const handleCheckout = async () => {
+  const handleStartCheckout = async () => {
     if (!email) {
       setError('Add your email so we can confirm access.');
       return;
     }
     if (!movie) return;
     setProcessing(true);
-    setError('');
     try {
-      const successUrl = `${window.location.origin}/watch/${movie.id}?email=${encodeURIComponent(email)}`;
-      const cancelUrl = `${window.location.origin}/movies/${movie.slug}`;
-      const res = await createCheckout(movie.id, { email, successUrl, cancelUrl });
-      window.location.href = res.checkoutUrl;
+      const stripe = await getStripe();
+      setStripePromise(Promise.resolve(stripe));
+      setError('');
+      setShowCheckout(true);
     } catch (e) {
-      setError('Checkout could not start. Try again.');
+      setError('Payments are unavailable right now. Missing Stripe configuration.');
     } finally {
       setProcessing(false);
     }
   };
+
+  const fetchClientSecret = useCallback(() => {
+    return createCheckoutSession(movie.id, email).then((res) => res.clientSecret);
+  }, [movie?.id, email]);
 
   if (loading) return <main className="page"><p className="muted">Loading film…</p></main>;
   if (error && !movie) return <main className="page"><p className="error">{error}</p></main>;
@@ -50,43 +57,34 @@ function MoviePage() {
           <p className="eyebrow">{movie.release_year} · {movie.runtime_minutes}m</p>
           <h1>{movie.title}</h1>
           <p className="lede">{movie.synopsis}</p>
-          <div className="pill-row">
-            {(movie.tags || []).map((tag) => (
-              <span className="pill" key={tag}>{tag}</span>
-            ))}
-          </div>
-          <div className="detail-grid">
-            <div>
-              <p className="meta-eyebrow">Director</p>
-              <p className="meta-body">{movie.director || '—'}</p>
-            </div>
-            <div>
-              <p className="meta-eyebrow">Cast</p>
-              <p className="meta-body">{(movie.cast || []).join(', ') || '—'}</p>
-            </div>
-            <div>
-              <p className="meta-eyebrow">Rating</p>
-              <p className="meta-body">{movie.rating || 'Not rated'}</p>
-            </div>
-          </div>
           <div className="purchase-box">
-            <div>
-              <p className="meta-eyebrow">Stream access</p>
-              <p className="price">${((movie.price_cents || 1200) / 100).toFixed(2)}</p>
-            </div>
-            <div className="checkout-row">
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button className="button primary" onClick={handleCheckout} disabled={processing}>
-                {processing ? 'Redirecting…' : 'Rent via Stripe'}
-              </button>
-            </div>
-            {error && <p className="error">{error}</p>}
-            <button className="button ghost" onClick={() => navigate(-1)}>Back to collection</button>
+            {!showCheckout ? (
+              <>
+                <div>
+                  <p className="meta-eyebrow">Stream access</p>
+                  <p className="price">${((movie.price_cents || 1200) / 100).toFixed(2)}</p>
+                </div>
+                <div className="checkout-row">
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <button className="button primary" onClick={handleStartCheckout} disabled={processing}>
+                    {processing ? 'Preparing checkout…' : 'Rent Now'}
+                  </button>
+                </div>
+                {error && <p className="error">{error}</p>}
+                <button className="button ghost" onClick={() => navigate(-1)}>Back to collection</button>
+              </>
+            ) : (
+              stripePromise && (
+                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ fetchClientSecret }}>
+                  <EmbeddedCheckout />
+                </EmbeddedCheckoutProvider>
+              )
+            )}
           </div>
         </div>
       </section>
