@@ -9,7 +9,54 @@ function NavBar() {
 
   return (
     <header className="nav-shell">
-      <div className="nav-brand">
+      <div className="header-container gradient">
+        <div className="overlay">
+          <main>
+            <div className="design space-between">
+              <img
+                src="images/flowers.jpg"
+                alt="logo"
+                className="header-image"
+              />
+
+              <div className="center header-text">
+                <h1>Indigo Garden Cinema Club</h1>
+                <div className="design space-container">
+                  <span>Surprise</span>
+                  <hr />
+                  <span>Films</span>
+                  <hr />
+                  <span>Every</span>
+                </div>
+                <div className="design space-container">
+                  <span>Thursday</span>
+                  <hr />
+                  <span>7pm CST</span>
+                </div>
+                <div className="shapes">
+                  <div className="oval">
+                    <p>Directly</p>
+                    <p>Support Artists</p>
+                  </div>
+                  <div className="square"><p>Be there or be square</p></div>
+                </div>
+
+                <div className="footer">
+                  <h4>perennial films, always blooming.</h4>
+                </div>
+              </div>
+
+              <img
+                src="images/flowers.jpg"
+                alt="logo"
+                className="header-image"
+              />
+            </div>
+          </main>
+        </div>
+    </div>
+      
+      {/* <div className="nav-brand">
         <Link to="/" className="brand-mark">
           <span className="brand-dot" />
           <span>CinemaClub</span>
@@ -21,7 +68,7 @@ function NavBar() {
         </Link>
         <a href="#about">About</a>
         <a href="#collection">Collection</a>
-      </nav>
+      </nav> */}
     </header>
   );
 }

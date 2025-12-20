@@ -4,11 +4,19 @@
   padding: 0;
 }
 
+.design {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
 :root {
   --fg: #222;
   --fg-muted: #555;
-  --bg: #fff;
-  --accent: #00c;
+  --bg: #f6fbfd;
+  --line: #4853ad;
+  --accent: rgb(67, 123, 234);
   --visited: #551a8b;
   --border: #ccc;
 }
@@ -36,6 +44,7 @@ a:hover {
 img {
   display: block;
   max-width: 100%;
+  padding: 5px;
 }
 
 button {
@@ -49,19 +58,45 @@ input {
   font-size: inherit;
 }
 
+p, span {
+  font-family: "Lunchtype";
+  color: var(--line);
+}
+
 h1 {
-  font-size: 18px;
+  font-family: "Instrument Serif", serif;
+  font-size: 1.5vw;
+  color: #5d8cf0;
+  margin-block: 0px;
+  /* font-size: 18px; */
   font-weight: normal;
 }
 
 h2 {
+  font-family: "Instrument Serif", serif;
   font-size: 16px;
   font-weight: normal;
+  color: var(--line);
 }
 
 h3 {
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   font-weight: bold;
+  color: var(--line);
+}
+
+h4 {
+  font-family: "Lunchtype";
+  font-size: 20px;
+  font-weight: normal;
+  color: var(--line);
+  margin-block: 0px;
+  display: block;
+}
+
+hr {
+  color: var(--line);
 }
 
 #root {
@@ -69,3 +104,186 @@ h3 {
   margin: 0 auto;
   padding: 10px 15px;
 }
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+
+.pt-8 {
+  padding-top: 2rem;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.shapes {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.oval {
+  border: 2px solid var(--line);
+  padding: 12px 14px;
+  line-height: 100%;
+  text-align: center;
+  border-radius: 50%;
+  p {
+    margin-block: 0px;
+    text-transform: uppercase;
+  }
+}
+
+.square {
+  border: 2px solid var(--line);
+  margin-top: 10px;
+  box-sizing: border-box;
+  text-transform: uppercase;
+  padding: .5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  div {
+    font-size: 1.3vw;
+    font-weight: bold;
+    p {
+      margin-block: 0px;
+      font-size: 0.7vw;
+    }
+  }
+}
+
+.space-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.space-container hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid currentColor;
+  margin: 0 0.5rem;
+}
+
+/* XL breakpoint (Tailwind xl = min-width: 1280px) */
+@media (min-width: 1280px) {
+  .xl\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Image sizing */
+.w-1\/5 {
+  width: 20%;
+}
+
+.h-1\/5 {
+  height: 20%;
+}
+
+.mb-\[-20px\] {
+  margin-bottom: -20px;
+}
+
+/* Text size */
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+/* Fonts */
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/Instrument%20Serif%20Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/Instrument%20Serif%20Italic.woff2") format("woff2");
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Lunchtype";
+  src: url("/fonts/Lunchtype%20Light.woff2") format("woff2");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Lunchtype";
+  src: url("/fonts/Lunchtype%20Medium.woff2") format("woff2");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Lunchtype";
+  src: url("/fonts/Lunchtype%20Regular.woff2") format("woff2");
+  font-weight: 400;
+}
+
+/* Images */
+.header-image {
+  width: 200px;
+  height: auto;
+}
+
+.header-text {
+  flex: 1;
+  text-align: center;
+}
+
+/* Gradient */
+/* We probably won't use this but I found it in the CSS from the old website and thought it was fun to play around with :) */
+/* .gradient {
+  background-color: rgb(141, 230, 238);
+  background-image: radial-gradient(
+      at 83% 3%,
+      rgb(143, 240, 245) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 2% 98%, rgb(133, 220, 213) 0px, transparent 50%),
+    radial-gradient(at 98% 97%, rgb(150, 203, 244) 0px, transparent 50%),
+    radial-gradient(at 15% 81%, rgb(154, 253, 255) 0px, transparent 50%),
+    radial-gradient(at 9% 7%, rgb(170, 224, 245) 0px, transparent 50%);
+  background-size: 180% 180%;
+  animation: gradientShift 40s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 25%;
+  }
+  50% {
+    background-position: 100% 75%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+} */
