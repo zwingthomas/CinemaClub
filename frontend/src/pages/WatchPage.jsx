@@ -66,48 +66,50 @@ function WatchPage() {
   };
 
   return (
-    <main className="watch-page">
-      <div className="watch-header">
-        <div>
-          <p className="eyebrow">Now screening</p>
+    <main className="detail-page watch-page">
+      <div className="detail-container">
+        <Link to={movie ? `/movies/${movie.slug}` : '/'} className="back-link">← Back to details</Link>
+
+        <div className="watch-header">
+          <p className="detail-meta">Now screening</p>
           <h1>{movie?.title || 'CinemaClub screening room'}</h1>
           {!playbackId && (
             <>
-              <p className="lede">Claim access with the email used at checkout. Your stream comes straight from Mux.</p>
-              <div className="access-row">
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError('');
-                  }}
-                />
-                <button className="button primary" onClick={handleAccess} disabled={loading || !email}>
-                  {loading ? 'Checking…' : 'Unlock stream'}
-                </button>
-                <Link className="button ghost" to={movie ? `/movies/${movie.slug}` : '/'}>
-                  Back to details
-                </Link>
+              <p className="detail-synopsis">Claim access with the email used at checkout. Your stream comes straight from Mux.</p>
+              <div className="purchase-box">
+                <div className="purchase-form">
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError('');
+                    }}
+                  />
+                  <button className="btn-primary" onClick={handleAccess} disabled={loading || !email}>
+                    {loading ? 'Checking…' : 'Unlock stream'}
+                  </button>
+                </div>
+                {error && <p className="error">{error}</p>}
               </div>
-              {error && <p className="error">{error}</p>}
             </>
           )}
         </div>
-      </div>
-      <div className="player-shell">
-        {loading && <p className="muted">Preparing your stream…</p>}
-        {!loading && playbackId && (
-          <MuxPlayer
-            streamType="on-demand"
-            playbackId={playbackId}
-            style={{ width: '100%', maxHeight: '70vh', borderRadius: '18px', overflow: 'hidden' }}
-            accentColor="#ff775c"
-            onPlay={handlePlay}
-          />
-        )}
-        {!loading && !playbackId && !error && <p className="muted">Enter your email to unlock the film.</p>}
+
+        <div className="player-shell">
+          {loading && <p className="muted">Preparing your stream…</p>}
+          {!loading && playbackId && (
+            <MuxPlayer
+              streamType="on-demand"
+              playbackId={playbackId}
+              style={{ width: '100%', maxHeight: '70vh', borderRadius: '8px', overflow: 'hidden' }}
+              accentColor="#4853ad"
+              onPlay={handlePlay}
+            />
+          )}
+          {!loading && !playbackId && !error && <p className="muted">Enter your email to unlock the film.</p>}
+        </div>
       </div>
     </main>
   );

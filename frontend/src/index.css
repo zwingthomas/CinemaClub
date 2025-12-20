@@ -100,9 +100,8 @@ hr {
 }
 
 #root {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 10px 15px;
+  margin: 0;
+  padding: 0;
 }
 
 .px-4 {
@@ -309,6 +308,129 @@ hr {
   h4 {
     font-size: 16px;
   }
+}
+
+/* Poster Grid */
+.poster-grid-container {
+  background-color: #000;
+  position: relative;
+}
+
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  background-color: #000;
+  gap: 2px;
+}
+
+.poster-item {
+  aspect-ratio: 2/3;
+  display: block;
+  padding: 12px;
+  position: relative;
+  background-color: #f5d6c6;
+}
+
+.poster-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: #f5d6c6;
+  filter: url(#noise);
+  z-index: 0;
+}
+
+.poster-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+}
+
+.poster-item.countdown {
+  background-color: #f5d6c6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--line);
+  position: relative;
+  z-index: 1;
+}
+
+.countdown-days {
+  font-family: "Instrument Serif", serif;
+  font-size: 48px;
+  line-height: 1;
+}
+
+.countdown-label {
+  font-family: "Lunchtype";
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.countdown-date {
+  font-family: "Lunchtype";
+  font-size: 12px;
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
+/* Info trigger (flower button) */
+.info-trigger {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  cursor: pointer;
+  z-index: 100;
+  width: 80px;
+}
+
+.info-trigger img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  padding: 0;
+}
+
+/* Info modal */
+.info-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.info-modal-content {
+  background: var(--bg);
+  padding: 2rem;
+  max-width: 400px;
+  position: relative;
+  border: 2px solid var(--line);
+}
+
+.info-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--fg);
 }
 
 /* Gradient */
