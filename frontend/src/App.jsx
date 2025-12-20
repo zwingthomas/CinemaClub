@@ -33,15 +33,7 @@ function NavBar() {
                   <hr />
                   <span>7pm CST</span>
                 </div>
-                <div className="shapes">
-                  <div className="oval">
-                    <p>Directly</p>
-                    <p>Support Artists</p>
-                  </div>
-                  <div className="square"><p>Be there or be square</p></div>
-                </div>
-
-                <div className="footer">
+                           <div className="footer">
                   <h4>perennial films, always blooming.</h4>
                 </div>
               </div>

@@ -22,8 +22,6 @@ function HomePage() {
       <section className="hero">
         <div className="hero-grid">
           <div>
-            <p className="eyebrow">CinemaClub</p>
-            <h1>Movies?</h1>
             <p className="lede">
             Yeah, let's watch some movies
             </p>
