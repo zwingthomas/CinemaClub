@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { checkPurchaseStatus, createCheckout, fetchMovie } from '../services/api.js';
 
 function MoviePage() {
@@ -53,44 +53,53 @@ function MoviePage() {
     }
   };
 
-  if (loading) return <main className="page"><p className="muted">Loading film…</p></main>;
-  if (error && !movie) return <main className="page"><p className="error">{error}</p></main>;
+  if (loading) return <main className="detail-page"><p className="muted">Loading film…</p></main>;
+  if (error && !movie) return <main className="detail-page"><p className="error">{error}</p></main>;
 
   return (
-    <main className="page">
-      <section className="movie-hero">
-        <img src={movie.hero_image_url || movie.still_image_url} alt={movie.title} className="movie-hero-img" />
-        <div className="movie-hero-overlay" />
-        <div className="movie-hero-content">
-          <p className="eyebrow">{movie.release_year} · {movie.runtime_minutes}m</p>
-          <h1>{movie.title}</h1>
-          <p className="lede">{movie.synopsis}</p>
-          <div className="purchase-box">
-            <div>
-              <p className="meta-eyebrow">Stream access</p>
-              <p className="price">${((movie.price_cents || 1200) / 100).toFixed(2)}</p>
+    <main className="detail-page">
+        <div className="detail-container">
+          <Link to="/" className="back-link">← Back to collection</Link>
+
+          <div className="detail-layout">
+            <div className="detail-poster">
+              <img src={movie.hero_image_url || movie.still_image_url} alt={movie.title} />
             </div>
-            <div className="checkout-row">
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button className="button primary" onClick={handleCheckout} disabled={processing}>
-                {processing ? 'Redirecting…' : 'Rent via Stripe'}
-              </button>
+
+            <div className="detail-info">
+              <p className="detail-meta">{movie.release_year} · {movie.runtime_minutes} min</p>
+              <h1>{movie.title}</h1>
+              <p className="detail-synopsis">{movie.synopsis}</p>
+
+              <div className="purchase-box">
+                <div className="purchase-header">
+                  <span className="purchase-label">Stream access</span>
+                  <span className="purchase-price">${((movie.price_cents || 1200) / 100).toFixed(2)}</span>
+                </div>
+                <div className="purchase-form">
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <button className="btn-primary" onClick={handleCheckout} disabled={processing}>
+                    {processing ? 'Redirecting…' : 'Rent via Stripe'}
+                  </button>
+                </div>
+                <p className="purchase-note">If you already rented recently, we will skip Stripe and take you straight to the stream.</p>
+                {error && <p className="error">{error}</p>}
+              </div>
             </div>
-            <p className="muted">If you already rented recently, we will skip Stripe and take you straight to the stream.</p>
-            {error && <p className="error">{error}</p>}
-            <button className="button ghost" onClick={() => navigate(-1)}>Back to collection</button>
           </div>
+
+          {movie.still_image_url && (
+            <div className="detail-still">
+              <img src={movie.still_image_url} alt={`${movie.title} still`} />
+            </div>
+          )}
         </div>
-      </section>
-      <section className="stills">
-        {movie.still_image_url && <img src={movie.still_image_url} alt={`${movie.title} still`} />}
-      </section>
-    </main>
+      </main>
   );
 }
 
